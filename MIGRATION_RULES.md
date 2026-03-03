@@ -403,6 +403,10 @@ Preserve the raw source value in `Notes` whenever `Legacy / other` is used.
 - If legacy `Integration Status` exists, use it for `Delivery Status`.
 - If legacy `partnership status` exists, use it for `Lifecycle Status`.
 - If legacy Notion gives a cleaner partner name or clearer historical classification than Asana, use the legacy value as the canonical reference and preserve the Asana raw value in notes when needed.
+- Exception for `Delivery Status`:
+  - if legacy `Integration Status` only normalizes to `Legacy / other`
+  - and Asana board section normalizes to a more specific canonical delivery status
+  - prefer the Asana delivery status instead of keeping `Legacy / other`
 - If old and new systems disagree:
   - prefer the system with the clearer and less obviously stale value
   - keep the secondary raw value in `Notes` or page content

@@ -391,6 +391,24 @@ function firstNonEmpty(...values) {
   return null;
 }
 
+function isSpecificCanonicalStatus(value) {
+  return value != null && value !== "" && value !== "Legacy / other";
+}
+
+function choosePreferredDeliveryStatus(legacyRawValue, currentValue, normalizationConfig) {
+  const normalizedLegacy = normalizeOptionMap(normalizationConfig, "Delivery Status", legacyRawValue);
+
+  if (isSpecificCanonicalStatus(normalizedLegacy)) {
+    return normalizedLegacy;
+  }
+
+  if (isSpecificCanonicalStatus(currentValue)) {
+    return currentValue;
+  }
+
+  return firstNonEmpty(normalizedLegacy, currentValue);
+}
+
 function applyTransform(rawValue, mapping, normalizationConfig) {
   switch (mapping.transform) {
     case "identity":
@@ -734,9 +752,10 @@ function mergeLegacyIntoCase(casePreview, legacyRecord, normalizationConfig) {
     normalizeOptionMap(normalizationConfig, "Lifecycle Status", legacyRecord.lifecycleStatusRaw),
     casePreview.properties["Lifecycle Status"]
   );
-  casePreview.properties["Delivery Status"] = firstNonEmpty(
-    normalizeOptionMap(normalizationConfig, "Delivery Status", legacyRecord.deliveryStatusRaw),
-    casePreview.properties["Delivery Status"]
+  casePreview.properties["Delivery Status"] = choosePreferredDeliveryStatus(
+    legacyRecord.deliveryStatusRaw,
+    casePreview.properties["Delivery Status"],
+    normalizationConfig
   );
   casePreview.properties["Business Owner"] = firstNonEmpty(casePreview.properties["Business Owner"], legacyRecord.businessOwner);
   casePreview.properties["External Contact"] = firstNonEmpty(casePreview.properties["External Contact"], legacyRecord.externalContact);

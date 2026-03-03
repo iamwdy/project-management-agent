@@ -441,6 +441,10 @@
     - create batches: 5
     - inter-batch delay: 500ms
   - `scripts/backfill-case-content.cjs` now exists as a content-only backfill path for existing `Integration Projects` pages.
+  - `Delivery Status` merge rule has been tightened:
+    - if legacy `Integration Status` only maps to `Legacy / other`
+    - but Asana section maps to a specific canonical delivery status
+    - prefer the Asana delivery status
 - Current live state:
   - The legacy-aware importer logic exists in code, but a full live rebuild has not completed successfully yet.
   - Attempts to overwrite the three test databases hit transient Notion API instability, including a confirmed `502`.
@@ -454,6 +458,36 @@
 - Pending follow-up:
   - Add a replace-content mode for `scripts/backfill-case-content.cjs`
   - Use that mode to convert existing Asana image links into real Notion image blocks on already-populated integration pages
+  - `Delivery Status` rule has already been fixed in code, but live backfill has not completed
+  - repeated attempts to run `scripts/backfill-delivery-status.cjs` failed with `read ECONNRESET`
+  - likely cause is request volume across:
+    - Asana tasks
+    - Asana subtasks
+    - legacy Notion fetch
+    - current Integration Projects fetch
+    - final page patch calls
+  - recommended next step is not another blind retry
+  - recommended next step is:
+    - cache preview output locally first
+    - make `scripts/backfill-delivery-status.cjs` read from cached preview JSON
+    - limit updates to pages currently set to `Legacy / other`
+  - On 2026-03-03, `scripts/backfill-delivery-status.cjs` was updated to support:
+    - `--preview <file>` so it can reuse cached preview JSON instead of re-fetching Asana
+    - default behavior that only updates pages whose current `Delivery Status` is `Legacy / other`
+    - `--all-statuses` override for a broader patch when needed later
+  - A live retry was attempted with:
+    - `node scripts/backfill-delivery-status.cjs --preview tmp/migration-preview.full.json`
+  - That retry still failed before producing a result file:
+    - error: `read ECONNRESET`
+    - no `tmp/delivery-status-backfill-result.json` was written
+  - Current interpretation:
+    - the mapping fix exists
+    - the lower-risk cached-preview path exists
+    - the remaining blocker is transient network / API reliability during live Notion patching
+  - Recommended next step for the next session:
+    - add retry handling for `ECONNRESET` in the Notion request path
+    - make update batch size configurable for `scripts/backfill-delivery-status.cjs`
+    - retry with a smaller batch size using the cached preview file
 - Latest structural correction:
   - `KCSYS 冠全 <> 煙波` and `KCSYS 冠全 <> 漢來美食` were promoted from `Tasks` into real `Partner Integration Hub` cases.
   - Their case pages now use the original Asana subtask description, not only the `Tasks` summary.
