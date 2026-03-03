@@ -1,0 +1,215 @@
+{
+  "generatedAt": "2026-03-03",
+  "normalization": {
+    "Country": {
+      "asanaType": "multi_enum",
+      "targets": {
+        "partners": ["TW", "HK", "SG", "AU", "TH", "JP", "MY"],
+        "integrationProjects": ["TW", "HK", "SG", "AU", "TH"]
+      },
+      "directMap": {
+        "TW": ["TW"],
+        "HK": ["HK"],
+        "SG": ["SG"],
+        "AU": ["AU"]
+      },
+      "notionOnlyOptions": {
+        "partners": ["TH", "JP", "MY"],
+        "integrationProjects": ["TH"]
+      }
+    },
+    "Partner Type": {
+      "asanaType": "multi_enum",
+      "directMap": {
+        "Hotel": ["Hotel"],
+        "POS": ["POS"],
+        "Platform": ["Platform"],
+        "Media": ["Media"],
+        "Restaurant 2C platform": ["Restaurant 2C platform"],
+        "Membership": ["Membership"],
+        "Lifestyle": ["Lifestyle"],
+        "mall": ["mall"],
+        "Restaurant Group": ["Restaurant Group"],
+        "Client app/website": ["Client app/website"],
+        "EC site": ["EC site"],
+        "POS (middle layer)": ["POS (middle layer)"],
+        "Client website": ["Client website"],
+        "Client": ["Client"],
+        "Client reporting": ["Client reporting"],
+        "Other": ["Other"],
+        "CRM": ["CRM"],
+        "Strategic Partner": ["Strategic Partner"]
+      },
+      "notionOnlyOptions": ["OTA"]
+    },
+    "Lifecycle Status": {
+      "asanaField": "Partnership status",
+      "fallback": "Legacy / other",
+      "map": {
+        "in discussion": "In discussion",
+        "in discussion - to send proposal in mid Aug": "In discussion",
+        "in discussion - 義享天地 (Feb 2020)": "In discussion",
+        "to integrate": "To integrate",
+        "to sign NDA - phase 1": "To integrate",
+        "to sign NDA and discuss technical details": "To integrate",
+        "signed": "Signed",
+        "integratoin to start": "Integration to start",
+        "in development (live by end of 2019)": "Integration to start",
+        "live": "Live",
+        "live (partial)\n\nto start next phase of integartion": "Live",
+        "live (since Aug 2018)": "Live",
+        "live (since Apr 2018)": "Live",
+        "live (since Apr 2019)": "Live",
+        "live (since Nov 2018)": "Live",
+        "live (since Feb 2019)": "Live",
+        "to live (gradually go live)": "Live",
+        "terminated": "Terminated",
+        "on hold": "On hold"
+      }
+    },
+    "Delivery Status": {
+      "asanaField": "memberships.section.name",
+      "fallback": "Legacy / other",
+      "specialCases": {
+        "3rd Party Partners": {
+          "mappedValue": null,
+          "reason": "This Asana section is used as a partner bucket rather than an execution-stage status."
+        }
+      },
+      "map": {
+        "In Discussion": "In Discussion",
+        "Action Require": "Action Required",
+        "Action Require, launched": "Launched - follow-up",
+        "Action Require, on pause": "On Pause",
+        "Action Require, in development by partner": "In Development by Partner",
+        "In Development by partner, pending for a while": "Pending for a while",
+        "In Development by Partner": "In Development by Partner",
+        "Free Booking - launch\npaid booking - in development": "Launched - follow-up",
+        "Pending for a while": "Pending for a while",
+        "On Pause": "On Pause",
+        "Terminated": "Terminated",
+        "Launched - but still takes time": "Launched - follow-up",
+        "Launched": "Launched"
+      }
+    },
+    "Contract Status": {
+      "asanaType": "multi_enum",
+      "fallback": "Legacy / other",
+      "map": {
+        "NDA signed": ["NDA signed"],
+        "\bNDA signed": ["NDA signed"],
+        "contract to sign": ["Contract to sign"],
+        "signed": ["Signed"],
+        "to sign": ["To sign"],
+        "NDA and contract signed": ["NDA and contract signed"],
+        "no contrac - to add contract": ["No contract"],
+        "since Mar 2018": ["Legacy / other"]
+      }
+    },
+    "Integration Type": {
+      "asanaType": "multi_enum",
+      "tokenMap": {
+        "Link out": "Link out",
+        "iframe": "iframe",
+        "inline API": "inline API",
+        "inline Webhook": "inline Webhook",
+        "partner API": "partner API",
+        "partner API (Direct)": "partner API",
+        "inline Landing": "inline Landing",
+        "email scraping": "Email scraping",
+        "API - other": "Other",
+        "API": "Other",
+        "TBD": "Other"
+      }
+    },
+    "Integration Scope": {
+      "asanaType": "multi_enum",
+      "tokenMap": {
+        "Booking Integration": "Booking Integration",
+        "FO Integration": "FO Integration",
+        "TMS Integration": "TMS Integration",
+        "FO POS Integration": "FO POS Integration",
+        "CRM Integration": "CRM Integration"
+      }
+    },
+    "Commercial Model": {
+      "asanaField": "partnership type",
+      "tokenMap": {
+        "booking syndication": "Booking syndication",
+        "booking data integration": "Booking data integration",
+        "agency model": "Agency model",
+        "referral model": "Referral model",
+        "feature expansion": "Feature expansion",
+        "other": "Other",
+        "other (m&a)": "Other"
+      }
+    },
+    "Implementation Scope Detail": {
+      "asanaField": "Scope",
+      "fallback": "Other",
+      "map": {
+        "1- booking syndication (full)": "Booking syndication (full)",
+        "2- booking syndication (mapped)": "Booking syndication (mapped)",
+        "2- booking syndication (mapped)\n3- member data sync": "Booking syndication (mapped)"
+      },
+      "secondaryTokens": {
+        "member data sync": "Member data sync"
+      }
+    },
+    "Developed By": {
+      "fallback": "Unknown",
+      "map": {
+        "inline": "inline",
+        "Partner": "Partner"
+      },
+      "notionOnlyOptions": ["Mixed", "Unknown"]
+    },
+    "Material Preparation": {
+      "asanaType": "multi_enum",
+      "map": {
+        "Stag api key, test branch": "Stage API key test branch",
+        "Prod api key, test branch": "Prod API key test branch",
+        "Stag webhook": "Stage webhook",
+        "Prod webhook": "Prod webhook",
+        "Integration Doc": "Integration Doc",
+        "Training Doc": "Training Doc",
+        "Partner POS/App": "Partner POS/App",
+        "Partner Screen Recordings / Screenshots": "Partner Screen Recordings / Screenshots"
+      }
+    },
+    "Clarification Status": {
+      "fallback": "Clarification Needed",
+      "map": {
+        "Clarification Needed": "Clarification Needed",
+        "Negotiation Required for refinement": "Negotiation Required for refinement",
+        "Clarification in Progress": "Clarification in Progress",
+        "OB team writing doc": "OB team writing doc"
+      },
+      "notionOnlyOptions": ["Clarification Completed"]
+    },
+    "FO Integrations": {
+      "asanaType": "multi_enum",
+      "map": {
+        "n/a": "n/a",
+        "Order Status Integrated": "Order Status Integrated"
+      },
+      "notionOnlyOptions": ["In development / discussion"]
+    },
+    "TMS Integrations": {
+      "asanaType": "multi_enum",
+      "map": {
+        "Table status integrated": "Table status integrated",
+        "Display order items": "Display order items",
+        "Deposit displayed in POS": "Deposit displayed in POS",
+        "In development / discussion": "In development / discussion"
+      },
+      "notionOnlyOptions": ["n/a"]
+    },
+    "Key Partner": {
+      "map": {
+        "TRUE": true,
+        "FALSE": false
+      }
+    }
+  }
+}

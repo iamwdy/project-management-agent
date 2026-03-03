@@ -1,0 +1,242 @@
+{
+  "generatedAt": "2026-03-03",
+  "sources": {
+    "asanaProject": "inline Clients & Partners Integrations",
+    "partnersDatabase": "Partners",
+    "integrationProjectsDatabase": "Integration Projects",
+    "tasksDatabase": "Tasks (test)"
+  },
+  "fieldMappings": [
+    {
+      "asanaField": "name",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Partner Name",
+      "transform": "identity"
+    },
+    {
+      "asanaField": "Country",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Country",
+      "transform": "map_multi_enum"
+    },
+    {
+      "asanaField": "Country",
+      "targetDatabase": "partners",
+      "targetProperty": "Country",
+      "transform": "map_multi_enum"
+    },
+    {
+      "asanaField": "Partner Type",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Partner Type",
+      "transform": "map_multi_enum"
+    },
+    {
+      "asanaField": "Partner Type",
+      "targetDatabase": "partners",
+      "targetProperty": "Partner Type",
+      "transform": "map_multi_enum"
+    },
+    {
+      "asanaField": "Partnership status",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Lifecycle Status",
+      "transform": "map_enum_with_fallback"
+    },
+    {
+      "asanaField": "memberships.section.name",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Delivery Status",
+      "transform": "map_enum_with_fallback"
+    },
+    {
+      "asanaField": "Contract status",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Contract Status",
+      "transform": "map_multi_enum_with_fallback"
+    },
+    {
+      "asanaField": "Integration Type",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Integration Type",
+      "transform": "split_packed_multi_enum"
+    },
+    {
+      "asanaField": "Integration Scope",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Integration Scope",
+      "transform": "split_packed_multi_enum"
+    },
+    {
+      "asanaField": "partnership type",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Commercial Model",
+      "transform": "split_packed_enum"
+    },
+    {
+      "asanaField": "Scope",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Implementation Scope Detail",
+      "transform": "split_packed_enum"
+    },
+    {
+      "asanaField": "Collaborators",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Business Owner",
+      "transform": "preserve_raw_text"
+    },
+    {
+      "asanaField": "3rd party contact",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "External Contact",
+      "transform": "preserve_raw_text"
+    },
+    {
+      "asanaField": "Integration Doc",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Integration Doc URL",
+      "transform": "url_or_notes"
+    },
+    {
+      "asanaField": "Onboard doc",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Onboard Doc URL",
+      "transform": "url_or_notes"
+    },
+    {
+      "asanaField": "Canny",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Canny URL",
+      "transform": "url_or_notes"
+    },
+    {
+      "asanaField": "Developed by",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Developed By",
+      "transform": "map_enum_with_fallback"
+    },
+    {
+      "asanaField": "Material Preparation",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Material Preparation",
+      "transform": "map_multi_enum"
+    },
+    {
+      "asanaField": "Clarification Required",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Clarification Status",
+      "transform": "map_enum_with_fallback"
+    },
+    {
+      "asanaField": "FO Integrations",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "FO Integrations",
+      "transform": "map_multi_enum"
+    },
+    {
+      "asanaField": "TMS Integrations",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "TMS Integrations",
+      "transform": "map_multi_enum"
+    },
+    {
+      "asanaField": "groupId",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Group ID",
+      "transform": "preserve_raw_text"
+    },
+    {
+      "asanaField": "#restaurants",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Restaurant Coverage",
+      "transform": "preserve_raw_text"
+    },
+    {
+      "asanaField": "Restaurant",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Restaurant Coverage",
+      "transform": "append_text"
+    },
+    {
+      "asanaField": "contract starts",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Contract Start",
+      "transform": "preserve_raw_text"
+    },
+    {
+      "asanaField": "contract term",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Contract Term",
+      "transform": "preserve_raw_text"
+    },
+    {
+      "asanaField": "Feature Requests",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Feature Requests",
+      "transform": "preserve_raw_text"
+    },
+    {
+      "asanaField": "Key Partner",
+      "targetDatabase": "integrationProjects",
+      "targetProperty": "Key Partner",
+      "transform": "enum_true_false_to_checkbox"
+    },
+    {
+      "asanaField": "subtask.name",
+      "targetDatabase": "tasks",
+      "targetProperty": "Task name",
+      "transform": "identity"
+    },
+    {
+      "asanaField": "subtask.due_on",
+      "targetDatabase": "tasks",
+      "targetProperty": "Due",
+      "transform": "asana_date_to_notion_date"
+    },
+    {
+      "asanaField": "subtask.assignee",
+      "targetDatabase": "tasks",
+      "targetProperty": "Assign",
+      "transform": "map_person_if_resolvable"
+    },
+    {
+      "asanaField": "subtask.completed",
+      "targetDatabase": "tasks",
+      "targetProperty": "Status",
+      "transform": "asana_task_completion_to_status"
+    },
+    {
+      "asanaField": "subtask.permalink_url",
+      "targetDatabase": "tasks",
+      "targetProperty": "Source Asana Subtask URL",
+      "transform": "identity"
+    },
+    {
+      "asanaField": "subtask.membership.section.name",
+      "targetDatabase": "tasks",
+      "targetProperty": "External Status Raw",
+      "transform": "preserve_raw_text"
+    },
+    {
+      "asanaField": "subtask.notes",
+      "targetDatabase": "tasks",
+      "targetProperty": "Notes",
+      "transform": "preserve_raw_text"
+    },
+    {
+      "asanaField": "subtask.source",
+      "targetDatabase": "tasks",
+      "targetProperty": "Source System",
+      "transform": "default_asana_source_system"
+    }
+  ],
+  "transformNotes": {
+    "url_or_notes": "Write to the target URL property only when the source is a valid URL. Otherwise preserve the raw value in Notes or page content.",
+    "split_packed_multi_enum": "Asana options may encode multiple canonical values in one option. Split them into multiple target values.",
+    "split_packed_enum": "Asana single-select options may encode multiple canonical values. Expand them into the target multi-select or canonical select model.",
+    "map_enum_with_fallback": "Map known values directly. Unknown or mixed values go to the canonical fallback option and preserve raw text in Notes.",
+    "default_asana_source_system": "Use the fixed select value `Asana` for imported Asana subtasks unless an explicit merge decision changes it.",
+    "asana_task_completion_to_status": "Map incomplete tasks to `Not Started` by default and completed tasks to `Done` unless a more specific execution-state mapping is introduced.",
+    "third_party_partner_bucket": "A parent task in the Asana `3rd Party Partners` section may be only the partner bucket. Its subtasks can still be promoted into `Integration Projects` when they represent real implementation cases."
+  }
+}

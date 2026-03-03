@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2026-03-03",
+  "sources": {
+    "asanaProjectGid": "1211031887419620",
+    "legacyNotionDataSourceId": "6b8ef05a-121f-47b0-9e5e-367925834268",
+    "notionPartnersDataSourceId": "30a7eee3-a571-4cd8-9e96-8f2908fd234e",
+    "notionIntegrationProjectsDataSourceId": "b0dd567d-5d09-4cbe-9c86-252754e9a42d",
+    "notionTasksDataSourceId": "3282dddf-9bfa-4683-a321-5d7332fd4941"
+  },
+  "databases": {
+    "partners": {
+      "title": "Partners",
+      "properties": {
+        "Partner Name": "title",
+        "Normalized Name": "text",
+        "Partner Type": "multi_select",
+        "Country": "multi_select",
+        "Integration Cases": "relation",
+        "Notes": "text",
+        "Last Source Sync": "date",
+        "Source System": "select"
+      }
+    },
+    "integrationProjects": {
+      "title": "Integration Projects",
+      "properties": {
+        "Partner Name": "title",
+        "Partner": "relation",
+        "Tasks": "relation",
+        "Country": "multi_select",
+        "Partner Type": "multi_select",
+        "Lifecycle Status": "select",
+        "Delivery Status": "select",
+        "Primary PM": "people",
+        "Business Owner": "text",
+        "External Collaborator": "text",
+        "External Contact": "text",
+        "Developed By": "select",
+        "Integration Type": "multi_select",
+        "Integration Scope": "multi_select",
+        "Commercial Model": "multi_select",
+        "Implementation Scope Detail": "select",
+        "Contract Status": "multi_select",
+        "Contract Start": "text",
+        "Contract Term": "text",
+        "Restaurant Coverage": "text",
+        "Group ID": "text",
+        "Integration Doc URL": "url",
+        "Onboard Doc URL": "url",
+        "Scenario Doc URL": "url",
+        "Canny URL": "url",
+        "Material Preparation": "multi_select",
+        "Clarification Status": "select",
+        "Feature Requests": "text",
+        "FO Integrations": "multi_select",
+        "TMS Integrations": "multi_select",
+        "Key Partner": "checkbox",
+        "Notes": "text",
+        "Conversation Summary": "text",
+        "Open Questions": "text",
+        "Next Action": "text",
+        "Manual Intake Needed": "checkbox",
+        "Last Source Sync": "date",
+        "Source Notion URL": "url",
+        "Source Asana Task URL": "url",
+        "Source System": "select"
+      }
+    },
+    "tasks": {
+      "title": "Tasks (test)",
+      "properties": {
+        "Task name": "title",
+        "Status": "status",
+        "Assign": "people",
+        "Due": "date",
+        "Partner Hub": "relation",
+        "Source Asana Subtask URL": "url",
+        "External Status Raw": "text",
+        "Notes": "text",
+        "Source System": "select"
+      }
+    }
+  }
+}

@@ -1,0 +1,487 @@
+# WIP Notes
+
+## Current Status
+- Goal: build a Notion-based integration hub that uses Asana as the primary task source and aggregates partner communication context back onto related cards.
+- Confirmed user context:
+  - User collaborates with many integration partners.
+  - Current pain points are messy Asana data sources and fragmented communication across LINE, WeChat, WhatsApp, Slack, etc.
+  - LINE / WhatsApp / WeChat usage is via personal accounts, not official business/platform accounts.
+- Agreed direction:
+  - Do not design the core workflow around directly reading personal chat accounts.
+  - Use Notion as the canonical integration hub.
+  - Use Asana project data as the first structured upstream source.
+  - For personal messaging apps, plan around semi-manual capture / forwarding into a controlled intake flow, then summarize and attach to the relevant hub card.
+- User provided an Asana board URL:
+  - https://app.asana.com/1/407865308541648/project/1211031887419620/list/1211032161573835
+- User confirmed willingness to allow:
+  - Asana API access via PAT
+  - outbound network access for reading the Asana project
+- Constraint:
+  - User will not paste the PAT into chat directly.
+  - Expected secure path is local environment injection (for example `ASANA_PAT`) and then use it without echoing or storing it in the repo.
+
+## Next Steps
+- Asana PAT is now valid and project metadata has been fetched successfully.
+- Old Notion source has been identified:
+  - database title: `inline clients & partners integrations (Migrated to Asana)`
+  - database id: `f9366eab5c9147e398d5de81b1f5619d`
+  - data source id: `6b8ef05a-121f-47b0-9e5e-367925834268`
+- Current Asana source has been identified:
+  - project title: `inline Clients & Partners Integrations`
+  - project gid: `1211031887419620`
+  - board sections are being used as active process status buckets
+- New canonical Notion target has been created:
+  - database title: `Partner Integration Hub`
+  - database id: `d784f257124d4430b45375faff966d54`
+  - data source id: `b0dd567d-5d09-4cbe-9c86-252754e9a42d`
+  - parent page: `Partner Integration Hub (Draft)` (`2e8c90dfe38580cc80aee671706d024f`)
+  - current live data source title: `Integration Projects`
+- New partner master database has been created:
+  - database title: `Partners`
+  - database id: `678c7af2a3174a4588f83752d14761c5`
+  - data source id: `30a7eee3-a571-4cd8-9e96-8f2908fd234e`
+  - parent page: `Partner Integration Hub (Draft)` (`2e8c90dfe38580cc80aee671706d024f`)
+- New canonical target is now connected to the existing `Tasks` database:
+  - `Partner Integration Hub` has relation property `Tasks`
+  - `Tasks` has reverse relation property `Partner Hub`
+  - `Tasks` also includes: `Source Asana Subtask URL`, `Source System`, `External Status Raw`, `Notes`
+- New canonical target is now also connected to the `Partners` database:
+  - `Partner Integration Hub` has relation property `Partner`
+  - `Partners` has reverse relation property `Integration Cases`
+  - `Partners` is the company-level master layer; `Partner Integration Hub` now acts as the integration-case layer
+- Canonical schema draft for the new clean Notion database:
+  - `Partner Name` (title)
+  - `Country` (multi-select)
+  - `Partner Type` (multi-select)
+  - `Lifecycle Status` (status/select)
+  - `Delivery Status` (status/select)
+  - `Primary PM` (people or select)
+  - `Business Owner` (text or people)
+  - `External Contact` (text)
+  - `Developed By` (select: inline / partner / mixed / unknown)
+  - `Integration Type` (multi-select)
+  - `Integration Scope` (multi-select)
+  - `Commercial Model` (multi-select; normalized from old `partnership type`)
+  - `Implementation Scope Detail` (select; normalized from old `Scope`)
+  - `Contract Status` (select or multi-select depending on actual need)
+  - `Contract Start` (date or text if historical values are too dirty)
+  - `Contract Term` (text)
+  - `Restaurant Coverage` (text)
+  - `Group ID` (text/select)
+  - `Integration Doc URL` (url)
+  - `Onboard Doc URL` (url)
+  - `Scenario Doc URL` (url)
+  - `Canny URL` (url or text, depending on source cleanliness)
+  - `Material Preparation` (multi-select)
+  - `Clarification Status` (select)
+  - `Feature Requests` (rich text)
+  - `FO Integrations` (multi-select)
+  - `TMS Integrations` (multi-select)
+  - `Key Partner` (checkbox/select)
+  - `Notes` (rich text)
+  - `Last Source Sync` (datetime)
+  - `Source Notion URL` (url)
+  - `Source Asana Task URL` (url)
+  - `Source System` (select: notion / asana / merged)
+  - `Conversation Summary` (rich text)
+  - `Open Questions` (rich text)
+  - `Next Action` (rich text)
+  - `Manual Intake Needed` (checkbox)
+- Current live `Integration Projects` schema confirmed in Notion on 2026-03-03:
+  - `Partner Name` (title)
+  - `Partner` (relation -> `Partners`)
+  - `Tasks` (relation -> `Tasks`)
+  - `Country` (multi-select: `TW`, `HK`, `SG`, `AU`, `TH`)
+  - `Partner Type` (multi-select)
+  - `Lifecycle Status` (select)
+  - `Delivery Status` (select)
+  - `Primary PM` (people)
+  - `Business Owner` (text)
+  - `External Collaborator` (text)
+  - `External Contact` (text)
+  - `Developed By` (select)
+  - `Integration Type` (multi-select)
+  - `Integration Scope` (multi-select)
+  - `Commercial Model` (multi-select)
+  - `Implementation Scope Detail` (select)
+  - `Contract Status` (multi-select)
+  - `Contract Start` (text)
+  - `Contract Term` (text)
+  - `Restaurant Coverage` (text)
+  - `Group ID` (text)
+  - `Integration Doc URL` (url)
+  - `Onboard Doc URL` (url)
+  - `Scenario Doc URL` (url)
+  - `Canny URL` (url)
+  - `Material Preparation` (multi-select)
+  - `Clarification Status` (select)
+  - `Feature Requests` (text)
+  - `FO Integrations` (multi-select)
+  - `TMS Integrations` (multi-select)
+  - `Key Partner` (checkbox)
+  - `Notes` (text)
+  - `Conversation Summary` (text)
+  - `Open Questions` (text)
+  - `Next Action` (text)
+  - `Manual Intake Needed` (checkbox)
+  - `Last Source Sync` (date)
+  - `Source Notion URL` (url)
+  - `Source Asana Task URL` (url)
+  - `Source System` (select)
+- Live schema differences vs earlier draft:
+  - live title is `Integration Projects`, while the working name in notes is still `Partner Integration Hub`
+  - `Primary PM` is confirmed as `people`
+  - `Business Owner` is `text`, not people
+  - `External Collaborator` exists on the live schema
+  - `Country` live options currently exclude `JP` and `MY`
+  - long-form fields such as `Notes`, `Conversation Summary`, `Open Questions`, `Next Action`, and `Feature Requests` are plain text properties in Notion
+- Partner master schema draft for the new `Partners` database:
+  - `Partner Name` (title)
+  - `Normalized Name` (text)
+  - `Partner Type` (multi-select)
+  - `Country` (multi-select)
+  - `Integration Cases` (relation)
+  - `Notes` (rich text)
+  - `Last Source Sync` (datetime)
+  - `Source System` (select: notion / asana / merged)
+- Property/type mapping draft between old Notion, current Asana, and the new canonical database:
+  - `partner name` / Asana task `name` -> `Partner Name` (title)
+  - `country` / `Country` -> `Country` (multi-select)
+  - `partner type` / `Partner Type` -> `Partner Type` (multi-select)
+  - old `partnership status` + Asana `Partnership status` -> `Lifecycle Status` (single select/status)
+  - old `Integration Status` + Asana board section name -> `Delivery Status` (single select/status)
+  - old `PM` + Asana task `assignee` + `Assignee (imported)` -> `Primary PM` (people or select, final type pending)
+  - old `BD / AM rep` + Asana `Collaborators` -> `Business Owner` / `External Collaborator` (text/select split pending)
+  - old `3rd party contact` + Asana `3rd party contact` -> `External Contact` (text)
+  - old `Integration Type` + Asana `Integration Type` -> `Integration Type` (multi-select, with option normalization)
+  - old `Integration Scope` + Asana `Integration Scope` -> `Integration Scope` (multi-select, with option normalization)
+  - old `partnership type` + Asana `partnership type` -> `Commercial Model` (multi-select after normalization; source currently single-enum with packed values)
+  - old `Scope` + Asana `Scope` -> `Implementation Scope Detail` (single select)
+  - old `contract status` + Asana `Contract status` -> `Contract Status` (multi-select)
+  - old `contract starts` + Asana `contract starts` -> `Contract Start` (text first, possibly date later)
+  - old `contract term` + Asana `contract term` -> `Contract Term` (text)
+  - old `#restaurants` + Asana `#restaurants` + Asana `Restaurant` -> `Restaurant Coverage` (text)
+  - old `groupId` + Asana `groupId` -> `Group ID` (text/select pending)
+  - old `Integration Doc` + Asana `Integration Doc` -> `Integration Doc URL` (url, migrate only valid links; keep non-links in notes)
+  - old `Onboard doc` + Asana `Onboard doc` -> `Onboard Doc URL` (url)
+  - old `Integrated Scenarios doc` -> `Scenario Doc URL` (url)
+  - old `Canny` + Asana `Canny` -> `Canny URL` (url when valid, otherwise text fallback)
+  - Asana `Developed by` -> `Developed By` (single select)
+  - Asana `Material Preparation` -> `Material Preparation` (multi-select)
+  - old `Clarification Required` + Asana `Clarification Required` -> `Clarification Status` (single select)
+  - old `Feature Requests` + Asana `Feature Requests` -> `Feature Requests` (rich text)
+  - old `FO Integrations` + Asana `FO Integrations` -> `FO Integrations` (multi-select)
+  - old `TMS Integrations` + Asana `TMS Integrations` -> `TMS Integrations` (multi-select)
+  - Asana `Key Partner` -> `Key Partner` (checkbox)
+  - old `Note` + old `terms/ note` + Asana task `notes` -> `Notes` / `Conversation Summary` / `Open Questions` / `Next Action` (content split required)
+- Current `Partners` database schema confirmed in Notion on 2026-03-03:
+  - `Partner Name` (title)
+  - `Normalized Name` (text)
+  - `Partner Type` (multi-select)
+  - `Country` (multi-select)
+  - `Integration Cases` (relation)
+  - `Notes` (text)
+  - `Last Source Sync` (date)
+  - `Source System` (select)
+- Partner-level fields previously drafted but not present in the live `Partners` database:
+  - `Primary Contact`
+  - `Business Owner`
+  - `Primary PM`
+  - `Partner Website`
+  - `Canny URL`
+- Current rule: keep these values on the integration-case layer or in notes until the live `Partners` schema adds dedicated properties for them.
+- Normalization rules identified from task samples:
+  - URLs currently stored in Asana text fields must be validated before moving into Notion URL properties.
+  - Some Asana enum options encode multiple concepts in one option value, especially `Integration Type` and `partnership type`; these must be split or replaced in the new schema.
+  - Asana board section names are part of the status model and cannot be ignored when rebuilding Notion.
+  - Source values that are not valid URLs should be preserved in notes rather than forced into URL properties.
+- Pending implementation after schema confirmation:
+  - inspect actual Asana tasks
+  - map section names and custom fields into canonical statuses
+  - map old Notion properties and current Asana custom field types into canonical property types
+  - preserve option-level mappings where possible, including select and multi-select value normalization
+  - migrate merged records into the new database
+- Sample import completed successfully:
+  - sample parent page: `DTF SG <> inline`
+  - partner hub page id: `316c90df-e385-815f-8428-f5e4571f011e`
+  - partner hub page url: `https://www.notion.so/316c90dfe385815f8428f5e4571f011e`
+  - imported into page content:
+    - `Background`
+    - `Current Progress`
+    - `Source References`
+    - `Raw Asana Description`
+  - imported subtasks into shared `Tasks` database:
+    - `NDA` -> `Done`
+    - `Integration Doc` -> `Done`
+    - `Integration Test` -> `Not Started`
+    - `Training Doc` -> `Not Started`
+  - sample task page ids:
+    - `316c90df-e385-819b-91d9-f0fd9dcdda55`
+    - `316c90df-e385-8185-b83a-c0f327841d4a`
+    - `316c90df-e385-8138-b0bd-e3eb791eb3e0`
+    - `316c90df-e385-81e1-a78e-d315505f4221`
+- Additional sample imports completed for broader migration coverage:
+  - `Yahoo Table`
+    - page id: `316c90df-e385-8168-a308-c57886d99913`
+    - source coverage: old Notion row + Asana task
+    - mapping coverage: live lifecycle, launched delivery status, contract fields, commercial model, implementation scope detail
+  - `Walkerland`
+    - page id: `316c90df-e385-8154-ab1d-c9b56b60fca9`
+    - source coverage: old Notion row + Asana task
+    - mapping coverage: legacy lifecycle text that could not be cleanly normalized, scale note preserved, fallback to `Legacy / other`
+  - `Advocado`
+    - page id: `316c90df-e385-8186-82c2-eb16f0de16d3`
+    - source coverage: old Notion row + Asana task
+    - mapping coverage: old Notion `Integration Status` informed `Delivery Status = In Discussion`, Canny URL preserved, business owner carried over
+  - `KCSYS 冠全`
+    - page id: `316c90df-e385-8134-9b1d-d78a97c7279b`
+    - source coverage: old Notion row + Asana task + Asana subtasks
+    - mapping coverage: launched delivery status, integration doc + canny + FO/TMS flags, relation to shared `Tasks` database
+    - imported subtasks:
+      - `NDA` -> `316c90df-e385-812d-b511-dd684d701d66`
+      - `Integration Test` -> `316c90df-e385-81cd-96d2-c2f9c7e4c18c`
+      - `Training Doc` -> `316c90df-e385-81bd-b28c-cded2b015819`
+      - `KCSYS 冠全 <> 煙波` -> `316c90df-e385-8118-a27c-e3fcc09a0413`
+      - `KCSYS 冠全 <> 漢來美食` -> `316c90df-e385-8159-8e9d-d8bc760fa72c`
+- Additional page-template samples created after template refinements:
+  - `DTF SG <> inline`
+    - page id: `316c90df-e385-8152-afd7-ea469e219f0e`
+    - demonstrates migrated callout + source references in callout + `Background` / empty `Current Progress`
+    - uses attachment doc link under `Background`
+  - `開展集團 <> inline`
+    - page id: `316c90df-e385-81db-808f-fbc9de26212d`
+    - demonstrates migrated callout + source references in callout + short background links + empty `Current Progress`
+- Partner master samples created to support deduplication and the new three-layer model:
+  - `KCSYS 冠全`
+    - partner page id: `316c90df-e385-818f-89a9-d8d4645a7403`
+    - normalized name: `kcsys`
+    - linked integration cases:
+      - `316c90df-e385-8134-9b1d-d78a97c7279b` (`KCSYS 冠全`)
+      - `316c90df-e385-81be-b6be-f65d24259b51` (`KCSYS 冠全 <> 煙波`)
+      - `316c90df-e385-81c6-b03b-c37bff63b2d7` (`KCSYS 冠全 <> 漢來美食`)
+  - `Yahoo Table`
+    - partner page id: `316c90df-e385-81e3-a67d-e2ae6a8d7b2b`
+    - normalized name: `yahoo table`
+    - linked integration case: `316c90df-e385-8168-a308-c57886d99913`
+  - `Advocado`
+    - partner page id: `316c90df-e385-81a8-a973-d09a336652a5`
+    - normalized name: `advocado`
+    - linked integration case: `316c90df-e385-8186-82c2-eb16f0de16d3`
+- Sample validation conclusions:
+  - Asana description belongs in page content, not in structured properties.
+  - Old Notion rows are valuable for `Delivery Status`, document URLs, and legacy notes when Asana fields are sparse.
+  - The old Notion database is the pre-Asana source model, so it should also be used to recover hierarchy that Asana flattened away.
+  - Old Notion relation fields may still exist, but the importer should not depend on `Parent item` / `Sub-item` to run.
+  - Prefer legacy `partner name`, status fields, URLs, and notes as the stable recovery signals.
+  - Some lifecycle values still need a normalization policy instead of direct import.
+  - Shared `Tasks` database relation works for Asana subtasks and should be reused in batch migration.
+  - Repeated partner names should not be managed as a single top-level card with only subtasks under it.
+  - Preferred operating model is now:
+    - `Partners` = one row per company / vendor
+    - `Partner Integration Hub` = one row per actual integration case
+    - `Tasks` = execution-level items, including Asana subtasks
+  - The `Partner` relation on integration cases is the intended deduplication anchor.
+  - If an Asana subtask clearly represents a real partner-to-brand or partner-to-restaurant implementation case, it should be promoted into `Partner Integration Hub` instead of staying only in `Tasks`.
+  - `Tasks` should remain for execution-level items, not for the case layer itself.
+  - When promoting a case-like Asana subtask into `Partner Integration Hub`, do not rely only on the existing `Tasks` summary fields.
+  - Re-fetch the original Asana subtask description and map it into page content using the current `Background` / `Current Progress` template.
+  - Page content template should stay minimal:
+    - use `Background`
+    - use `Current Progress`
+    - do not use a standalone `Source References` section at the bottom
+    - place `Source References` inside the top migration callout instead
+    - do not include Canny links in `Source References`
+    - place screenshots / attachment images directly under `Background`
+    - if no progress update exists, keep `Current Progress` present but empty
+    - if the Asana description already contains explicit `Background` and/or `Current Progress` sections, mirror those sections into the Notion page content directly instead of re-summarizing them
+  - For migrated cards, add a top-of-page callout:
+    - `This card was migrated from legacy sources.`
+    - place it before all other page content
+    - use icon `📝` and gray background
+    - include `Source References` as bullets inside the callout
+    - current sample reference page is `Vinyl Café`:
+      - `https://www.notion.so/316c90dfe38581208296ebf5b19edd9c`
+  - Tooling decision rule for Notion work:
+    - use MCP for exploration, schema inspection, one-off setup, and small sample validation
+    - use Notion API patterns for batch migration, repeatable sync logic, and productionizable automation
+    - do not require explicit user instruction each time; choose the tool path automatically based on whether the task is exploratory or operational
+- Status normalization rules draft:
+  - Two target fields must stay separate:
+    - `Lifecycle Status`: commercial / relationship stage
+    - `Delivery Status`: execution / implementation stage
+  - Source priority for `Lifecycle Status`:
+    - old Notion `partnership status`
+    - Asana `Partnership status`
+    - fallback: blank
+  - Source priority for `Delivery Status`:
+    - old Notion `Integration Status`
+    - Asana board section name
+    - fallback: blank
+  - `Lifecycle Status` normalization:
+    - `live`
+    - `live (since ...)`
+    - `live (partial)...`
+    - `for 晶華`
+      -> `Live`
+    - `signed`
+      -> `Signed`
+    - `in discussion`
+    - `in discussion - ...`
+    - `to sign NDA and discuss technical details`
+      -> `In discussion`
+    - `to integrate`
+      -> `To integrate`
+    - `integratoin to start`
+      -> `Integration to start`
+    - `on hold`
+    - `on hold - ...`
+      -> `On hold`
+    - `terminated`
+      -> `Terminated`
+    - `to live (gradually go live)`
+      -> `Live`
+    - `partner keen to integrate - aim to live end of 2019/ beginning of 2020. To sign NDA and partner to start testing`
+      -> `Legacy / other`
+    - `integratoin ongoing ...`
+    - `bookability for full inventory. to arrange tech discussion`
+    - `free booking - live / paid booking - in discussion`
+    - any other mixed legacy free-text
+      -> `Legacy / other`
+      - preserve original value in `Notes`
+  - `Delivery Status` normalization from old Notion `Integration Status`:
+    - `In discussion`
+      -> `In Discussion`
+    - `Action Require`
+      -> `Action Required`
+    - `in development by partner`
+      -> `In Development by Partner`
+    - `launched`
+      -> `Launched`
+    - `launched - but still takes time`
+      -> `Launched - follow-up`
+    - `on pause`
+      -> `On Pause`
+    - `terminated`
+      -> `Terminated`
+    - `pending for a while`
+      -> `Pending for a while`
+    - `free booking - launch / paid booking - in development`
+      -> `Launched - follow-up`
+    - `in development by inline`
+    - `pending launch`
+    - `Issue Investigation`
+    - `TBC`
+      -> `Legacy / other`
+      - preserve original value in `Notes`
+  - `Delivery Status` normalization from Asana board section:
+    - `3rd Party Partners`
+      -> no direct mapping; treat as partner bucket context
+    - `In Discussion`
+      -> `In Discussion`
+    - `Action Require`
+      -> `Action Required`
+    - `Action Require, launched`
+      -> `Launched - follow-up`
+    - `Action Require, on pause`
+      -> `On Pause`
+    - `Action Require, in development by partner`
+      -> `In Development by Partner`
+    - `In Development by partner, pending for a while`
+      -> `Pending for a while`
+    - `In Development by Partner`
+      -> `In Development by Partner`
+    - `Free Booking - launch / paid booking - in development`
+      -> `Launched - follow-up`
+    - `Pending for a while`
+      -> `Pending for a while`
+    - `On Pause`
+      -> `On Pause`
+    - `Terminated`
+      -> `Terminated`
+    - `Launched - but still takes time`
+      -> `Launched - follow-up`
+    - `Launched`
+      -> `Launched`
+  - Conflict rules:
+    - If old Notion `Integration Status` exists, use it for `Delivery Status` and treat Asana section as secondary evidence.
+    - If old Notion `partnership status` exists, use it for `Lifecycle Status` and treat Asana `Partnership status` as secondary evidence.
+    - If old Notion gives a cleaner partner name or clearer historical classification than Asana, use it as the canonical reference.
+    - If old and new values disagree:
+      - prefer the more recent system if the old value is blank or obviously legacy
+      - preserve both raw values in page content or `Notes`
+
+## Risks / Open Questions
+- Personal LINE / WhatsApp / WeChat chats are not a safe foundation for direct automated ingestion. Avoid gray-area scraping or device-level hacks for the primary workflow.
+- Need to confirm whether Notion writeback is authorized, including auth method and where the new clean database should be created.
+- Still need actual Asana task-level samples before finalizing how one record maps between old Notion rows and current Asana cards.
+- Need a property-level mapping table, not just a field-name mapping table:
+  - title/text/url/date/select/multi-select/relation/checkbox need explicit handling
+  - option names may need normalization because old Notion and current Asana use slightly different labels and cardinality rules
+- Future communication ingestion should prefer official APIs where available (for example Slack or business accounts) and use semi-manual capture for personal messaging channels.
+
+## Resume Notes
+- Repository scope clarification:
+  - This repo is currently serving the integration migration workflow only.
+  - Even though the broader domain is booking / reservation operations, the actual code and data work here is scoped to integration records, schema normalization, and integration project content migration.
+  - Do not treat the current repo state as a complete booking PM assistant without a separate scope definition.
+- Latest importer changes:
+  - `scripts/dry-run-migration.cjs` now fetches the legacy Notion database as a secondary source during preview generation.
+  - Legacy fields now participate in matching and fallback for:
+    - canonical partner naming
+    - `Lifecycle Status`
+    - `Delivery Status`
+    - document URLs
+    - `Business Owner`
+    - `External Contact`
+    - legacy notes
+  - The importer no longer depends on legacy `Parent item` / `Sub-item` relations to run.
+  - `scripts/import-migration.cjs` now includes retry/backoff for transient Asana / Notion API failures.
+  - `scripts/import-migration.cjs` now uses batch writes with throttling:
+    - archive batches: 10
+    - create batches: 5
+    - inter-batch delay: 500ms
+  - `scripts/backfill-case-content.cjs` now exists as a content-only backfill path for existing `Integration Projects` pages.
+- Current live state:
+  - The legacy-aware importer logic exists in code, but a full live rebuild has not completed successfully yet.
+  - Attempts to overwrite the three test databases hit transient Notion API instability, including a confirmed `502`.
+  - Therefore the current Notion test databases should still be treated as the previous Asana-first import result, not the final legacy-aware rebuild.
+  - The last completed import summary is still `tmp/migration-import-result.json`.
+- What is true right now:
+  - code path: legacy-aware
+  - live Notion data: not yet successfully rebuilt with the legacy-aware importer
+  - content-only backfill has successfully written page content for blank integration pages
+  - image URL detection exists in code, but converting already-populated pages from link-based content to embedded image blocks still requires a replace-content mode instead of the current blank-page-only append path
+- Pending follow-up:
+  - Add a replace-content mode for `scripts/backfill-case-content.cjs`
+  - Use that mode to convert existing Asana image links into real Notion image blocks on already-populated integration pages
+- Latest structural correction:
+  - `KCSYS 冠全 <> 煙波` and `KCSYS 冠全 <> 漢來美食` were promoted from `Tasks` into real `Partner Integration Hub` cases.
+  - Their case pages now use the original Asana subtask description, not only the `Tasks` summary.
+- Case-like subtask promotion rule is now:
+  - if a subtask represents a real partner-to-brand / partner-to-restaurant implementation case, promote it into `Partner Integration Hub`
+  - if a subtask is a work item such as NDA / docs / test / training / clarification, keep it in `Tasks`
+- Case-like subtask candidates identified for the next session:
+  - `Salt & Stone`
+    - parent Asana task: `開展集團 <> inline`
+    - likely should become its own integration case under the same partner group
+  - `Outback Steak House (HK) <> Seapoint`
+    - parent Asana task: `Seapoint`
+    - clearly looks like a partner-to-brand case
+  - `Other Restaurants <> Seapoint`
+    - parent Asana task: `Seapoint`
+    - likely case layer, but naming is broad and may need cleanup after import
+- Subtasks explicitly confirmed to remain in `Tasks`:
+  - `NDA`
+  - `Integration Doc`
+  - `Integration Test`
+  - `Training Doc`
+  - `Get the test app from the POS ready and available for demo`
+  - `Prepare training materials with Antonia`
+  - `Clarifications on integration scenarios and get test account from 點點廚`
+  - `Goal #1: connect the Abacus testing env that can work for the inline integration`
+  - `Goal #2: reach out to Tyro for how to enable the no.2 POS in AU`
+  - `Get a demo account from the partner (PC-only)`
+  - `Verify the training doc is ready from Antonia`
+- Suggested first step for the next session:
+  - promote the three case-like subtasks above into `Partner Integration Hub`
+  - then decide whether their current parent cards should remain standalone cases or become partner masters with multiple cases underneath

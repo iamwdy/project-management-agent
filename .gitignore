@@ -1,0 +1,29 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Credentials and tokens
+*.credentials.json
+token.json
+tokens.json
+oauth_client.json
+auth.json
+
+# Browser automation
+.browser_profiles/
+playwright/.auth/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Logs / temp
+*.log
+tmp/
