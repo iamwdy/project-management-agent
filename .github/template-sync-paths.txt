@@ -1,0 +1,5 @@
+AGENTS.md
+.gitignore
+.env.example
+scripts/
+.github/workflows/template-sync-pr.yml

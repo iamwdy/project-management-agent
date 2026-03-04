@@ -1,0 +1,52 @@
+name: Template Sync PR
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 3 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    if: github.repository != 'iamwdy/project-management-agent'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Add template remote
+        run: |
+          if git remote get-url template >/dev/null 2>&1; then
+            git remote set-url template https://github.com/iamwdy/project-management-agent.git
+          else
+            git remote add template https://github.com/iamwdy/project-management-agent.git
+          fi
+          git fetch template main
+
+      - name: Sync template paths
+        run: |
+          bash scripts/sync-template-paths.sh template/main .github/template-sync-paths.txt
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/template-sync
+          delete-branch: true
+          commit-message: "chore: sync template updates"
+          title: "chore: sync template updates"
+          body: |
+            Automated sync from the template repository.
+
+            Updated paths come from `.github/template-sync-paths.txt`.
+          labels: |
+            template-sync

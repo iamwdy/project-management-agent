@@ -64,6 +64,19 @@ Current behavior:
 - Use `scripts/new-project.sh` to create a new project from this template
 - `scripts/bootstrap-project.sh` prepares the local preference cache placeholder and `WIP_NOTES.md` inside an existing project
 
+## Template Sync
+New repos created from this template include a GitHub Actions workflow at `.github/workflows/template-sync-pr.yml`.
+
+Behavior:
+- runs weekly and on manual dispatch
+- fetches `iamwdy/project-management-agent`
+- syncs only the paths listed in `.github/template-sync-paths.txt`
+- opens a PR instead of merging directly
+
+Recommended customization in child repos:
+- keep template-owned files such as `AGENTS.md`, `.gitignore`, `.env.example`, and `scripts/` in the sync list
+- remove project-specific files such as `README.md` or `WIP_NOTES.md` from the sync list
+
 ## Recommended Prompt
 Use this prompt when starting a new project with Codex:
 
