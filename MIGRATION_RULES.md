@@ -384,6 +384,7 @@ Preserve the raw source value in `Notes` whenever `Legacy / other` is used.
 ### Delivery normalization from Asana board section
 
 - `3rd Party Partners` -> no direct `Delivery Status` mapping; treat as partner bucket context
+- no Asana section -> default `Delivery Status = In Discussion`
 - `In Discussion` -> `In Discussion`
 - `Action Require` -> `Action Required`
 - `Action Require, launched` -> `Launched - follow-up`

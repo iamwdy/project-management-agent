@@ -459,35 +459,55 @@
   - Add a replace-content mode for `scripts/backfill-case-content.cjs`
   - Use that mode to convert existing Asana image links into real Notion image blocks on already-populated integration pages
   - `Delivery Status` rule has already been fixed in code, but live backfill has not completed
-  - repeated attempts to run `scripts/backfill-delivery-status.cjs` failed with `read ECONNRESET`
-  - likely cause is request volume across:
-    - Asana tasks
-    - Asana subtasks
-    - legacy Notion fetch
-    - current Integration Projects fetch
-    - final page patch calls
-  - recommended next step is not another blind retry
-  - recommended next step is:
-    - cache preview output locally first
-    - make `scripts/backfill-delivery-status.cjs` read from cached preview JSON
-    - limit updates to pages currently set to `Legacy / other`
-  - On 2026-03-03, `scripts/backfill-delivery-status.cjs` was updated to support:
-    - `--preview <file>` so it can reuse cached preview JSON instead of re-fetching Asana
-    - default behavior that only updates pages whose current `Delivery Status` is `Legacy / other`
-    - `--all-statuses` override for a broader patch when needed later
-  - A live retry was attempted with:
-    - `node scripts/backfill-delivery-status.cjs --preview tmp/migration-preview.full.json`
-  - That retry still failed before producing a result file:
-    - error: `read ECONNRESET`
-    - no `tmp/delivery-status-backfill-result.json` was written
-  - Current interpretation:
-    - the mapping fix exists
-    - the lower-risk cached-preview path exists
-    - the remaining blocker is transient network / API reliability during live Notion patching
-  - Recommended next step for the next session:
-    - add retry handling for `ECONNRESET` in the Notion request path
-    - make update batch size configurable for `scripts/backfill-delivery-status.cjs`
-    - retry with a smaller batch size using the cached preview file
+  - repeated `read ECONNRESET` failures were debugged in depth and the earlier "request volume" theory is now considered incorrect
+  - verified findings from the transport debugging:
+    - `curl` to Notion API succeeded for:
+      - `GET /v1/users/me`
+      - `GET /v1/pages/{page_id}`
+      - `POST /v1/data_sources/{id}/query`
+    - `openssl s_client -connect api.notion.com:443 -servername api.notion.com` succeeded
+    - Node `https.request()` and Node `fetch()` both failed with `ECONNRESET` on the same minimal Notion endpoints
+    - the reset happened after TCP `connect` and before TLS `secureConnect`
+    - forcing Node to `TLSv1.3` still failed with `ECONNRESET`
+    - forcing Node to `TLSv1.2` succeeded against Notion
+    - therefore the practical root cause is: Node default TLS 1.3 path to Notion is unstable in this environment
+  - current standardized transport policy for this repo:
+    - Notion API calls should first use Node with:
+      - `minVersion: 'TLSv1.2'`
+      - `maxVersion: 'TLSv1.2'`
+      - `ALPNProtocols: ['http/1.1']`
+      - `agent: false`
+      - `Connection: close`
+    - if the Node TLS 1.2 path still fails, fall back to `curl`
+  - script status after the transport fix:
+    - `scripts/dry-run-migration.cjs` now uses Node TLS 1.2 first, then `curl` fallback for Notion requests
+    - `scripts/backfill-delivery-status.cjs` now uses Node TLS 1.2 first, then `curl` fallback for Notion requests
+    - `scripts/backfill-delivery-status.cjs` now also emits:
+      - source classification fields per item
+      - source summary counts
+      - batch progress logs
+  - latest verified `backfill-delivery-status` preview result:
+    - command used:
+      - `node scripts/backfill-delivery-status.cjs --preview tmp/migration-preview.status-check.full.json --limit 100 --output tmp/delivery-status-backfill-preview.json`
+    - result:
+      - `Updated: 0`
+      - `Skipped no change: 0`
+      - `Skipped not legacy: 73`
+      - `Skipped empty status: 29`
+      - `Unmatched: 0`
+    - output file:
+      - `tmp/delivery-status-backfill-preview.json`
+    - source summary:
+      - `mapped_from_section`: 73
+      - `third_party_bucket:empty`: 22
+      - `promoted_subtask_without_section:empty`: 7
+  - current interpretation:
+    - the `Delivery Status` mapping fix exists
+    - transport-level `ECONNRESET` is no longer the main blocker for Notion API work in these scripts
+    - `3rd Party Partners` and promoted subtasks without their own section are intentionally preserved as empty `Delivery Status`
+  - recommended next step for the next session:
+    - if actual status writes are needed beyond legacy-only cases, run `scripts/backfill-delivery-status.cjs --all-statuses`
+    - if duplicate title matches look suspicious, tighten matching rules before a broad live patch
 - Latest structural correction:
   - `KCSYS 冠全 <> 煙波` and `KCSYS 冠全 <> 漢來美食` were promoted from `Tasks` into real `Partner Integration Hub` cases.
   - Their case pages now use the original Asana subtask description, not only the `Tasks` summary.

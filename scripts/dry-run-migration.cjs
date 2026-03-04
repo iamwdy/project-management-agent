@@ -3,18 +3,24 @@
 const fs = require("fs");
 const path = require("path");
 const https = require("https");
+const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 const DEFAULT_OUTPUT = path.join(ROOT, "tmp", "migration-preview.json");
 const NOTION_VERSION = "2025-09-03";
 const REQUEST_TIMEOUT_MS = 30000;
 const MAX_REQUEST_RETRIES = 5;
+const REQUEST_PACING_MS = 250;
+
+let nextRequestAt = 0;
 
 function parseArgs(argv) {
   const args = {
     limit: 10,
     output: DEFAULT_OUTPUT,
     includeSubtasks: true,
+    legacyPageLimit: null,
+    skipLegacy: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -25,6 +31,10 @@ function parseArgs(argv) {
       args.output = path.resolve(argv[++i]);
     } else if (arg === "--no-subtasks") {
       args.includeSubtasks = false;
+    } else if (arg === "--legacy-page-limit" && argv[i + 1]) {
+      args.legacyPageLimit = Number(argv[++i]);
+    } else if (arg === "--skip-legacy") {
+      args.skipLegacy = true;
     } else if (arg === "--help" || arg === "-h") {
       printHelp();
       process.exit(0);
@@ -37,12 +47,16 @@ function parseArgs(argv) {
     throw new Error("--limit must be a positive number");
   }
 
+  if (args.legacyPageLimit != null && (!Number.isFinite(args.legacyPageLimit) || args.legacyPageLimit <= 0)) {
+    throw new Error("--legacy-page-limit must be a positive number");
+  }
+
   return args;
 }
 
 function printHelp() {
   console.log(`Usage:
-  node scripts/dry-run-migration.cjs [--limit N] [--output FILE] [--no-subtasks]
+  node scripts/dry-run-migration.cjs [--limit N] [--output FILE] [--no-subtasks] [--legacy-page-limit N] [--skip-legacy]
 
 Behavior:
   - loads .env locally without printing secrets
@@ -91,8 +105,26 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function paceRequest() {
+  const now = Date.now();
+  if (nextRequestAt > now) {
+    await sleep(nextRequestAt - now);
+  }
+  nextRequestAt = Date.now() + REQUEST_PACING_MS;
+}
+
 function shouldRetryStatus(statusCode) {
   return statusCode === 429 || statusCode >= 500;
+}
+
+function shouldRetryNetworkError(error) {
+  return [
+    "ECONNRESET",
+    "ECONNREFUSED",
+    "EAI_AGAIN",
+    "ETIMEDOUT",
+    "ECONNABORTED",
+  ].includes(error && error.code);
 }
 
 function getRetryDelayMs(attempt, retryAfterHeader) {
@@ -104,6 +136,15 @@ function getRetryDelayMs(attempt, retryAfterHeader) {
   return Math.min(1000 * 2 ** attempt, 15000);
 }
 
+function buildDataSourceQueryPath(dataSourceId, propertyNames = []) {
+  const params = new URLSearchParams();
+  for (const name of propertyNames) {
+    params.append("filter_properties[]", name);
+  }
+  const query = params.toString();
+  return `/data_sources/${dataSourceId}/query${query ? `?${query}` : ""}`;
+}
+
 async function asanaRequest(apiPath, attempt = 0) {
   const token = process.env.ASANA_PAT;
   if (!token) {
@@ -111,6 +152,7 @@ async function asanaRequest(apiPath, attempt = 0) {
   }
 
   return new Promise((resolve, reject) => {
+    void paceRequest().then(() => {
     const req = https.request(
       {
         hostname: "app.asana.com",
@@ -151,12 +193,18 @@ async function asanaRequest(apiPath, attempt = 0) {
     });
     req.on("error", reject);
     req.end();
+    }, reject);
   }).catch(async (error) => {
     if (attempt >= MAX_REQUEST_RETRIES) {
       throw error;
     }
 
-    if (error.code === "ENOTFOUND" || error.message.includes("timed out") || shouldRetryStatus(error.statusCode)) {
+    if (
+      error.code === "ENOTFOUND" ||
+      shouldRetryNetworkError(error) ||
+      error.message.includes("timed out") ||
+      shouldRetryStatus(error.statusCode)
+    ) {
       await sleep(getRetryDelayMs(attempt, error.retryAfter));
       return asanaRequest(apiPath, attempt + 1);
     }
@@ -171,18 +219,54 @@ async function notionRequest(method, apiPath, payload, attempt = 0) {
     throw new Error("NOTION_TOKEN is required");
   }
 
-  const body = payload ? JSON.stringify(payload) : null;
+  try {
+    await paceRequest();
+    try {
+      return await notionRequestViaNode(method, apiPath, payload, token);
+    } catch (nodeError) {
+      return notionRequestViaCurl(method, apiPath, payload, token, nodeError);
+    }
+  } catch (error) {
+    if (attempt >= MAX_REQUEST_RETRIES) {
+      throw error;
+    }
 
+    if (
+      error.code === "ENOTFOUND" ||
+      error.code === "ETIMEDOUT" ||
+      shouldRetryNetworkError(error) ||
+      String(error.message || "").includes("timed out") ||
+      String(error.message || "").includes("ECONNRESET") ||
+      String(error.message || "").includes("curl: (52)") ||
+      String(error.message || "").includes("curl: (56)") ||
+      error.message.includes("timed out") ||
+      shouldRetryStatus(error.statusCode)
+    ) {
+      await sleep(getRetryDelayMs(attempt, error.retryAfter));
+      return notionRequest(method, apiPath, payload, attempt + 1);
+    }
+
+    throw error;
+  }
+}
+
+async function notionRequestViaNode(method, apiPath, payload, token) {
+  const body = payload ? JSON.stringify(payload) : null;
   return new Promise((resolve, reject) => {
     const req = https.request(
       {
         hostname: "api.notion.com",
         path: `/v1${apiPath}`,
         method,
+        agent: false,
+        minVersion: "TLSv1.2",
+        maxVersion: "TLSv1.2",
+        ALPNProtocols: ["http/1.1"],
         headers: {
           Authorization: `Bearer ${token}`,
           "Notion-Version": NOTION_VERSION,
           Accept: "application/json",
+          Connection: "close",
           ...(body ? { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) } : {}),
         },
         timeout: REQUEST_TIMEOUT_MS,
@@ -197,7 +281,6 @@ async function notionRequest(method, apiPath, payload, attempt = 0) {
           if (res.statusCode < 200 || res.statusCode >= 300) {
             const error = new Error(`Notion API ${res.statusCode}: ${responseBody}`);
             error.statusCode = res.statusCode;
-            error.retryAfter = res.headers["retry-after"];
             reject(error);
             return;
           }
@@ -219,22 +302,69 @@ async function notionRequest(method, apiPath, payload, attempt = 0) {
       req.write(body);
     }
     req.end();
-  }).catch(async (error) => {
-    if (attempt >= MAX_REQUEST_RETRIES) {
+  });
+}
+
+function notionRequestViaCurl(method, apiPath, payload, token, originalError) {
+  const body = payload ? JSON.stringify(payload) : null;
+  const url = `https://api.notion.com/v1${apiPath}`;
+  const args = [
+    "-sS",
+    "-X",
+    method,
+    url,
+    "-H",
+    `Authorization: Bearer ${token}`,
+    "-H",
+    `Notion-Version: ${NOTION_VERSION}`,
+    "-H",
+    "Accept: application/json",
+    "-H",
+    "Connection: close",
+    "-w",
+    "\n__CURL_STATUS__:%{http_code}",
+  ];
+
+  if (body) {
+    args.push("-H", "Content-Type: application/json", "--data", body);
+  }
+
+  try {
+    const stdout = execFileSync("curl", args, {
+      encoding: "utf8",
+      timeout: REQUEST_TIMEOUT_MS,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    const marker = "\n__CURL_STATUS__:";
+    const markerIndex = stdout.lastIndexOf(marker);
+    if (markerIndex === -1) {
+      throw new Error("Invalid curl response from Notion API");
+    }
+
+    const responseBody = stdout.slice(0, markerIndex);
+    const statusCode = Number(stdout.slice(markerIndex + marker.length).trim());
+    if (!Number.isFinite(statusCode)) {
+      throw new Error("Missing HTTP status from Notion API");
+    }
+    if (statusCode < 200 || statusCode >= 300) {
+      const error = new Error(`Notion API ${statusCode}: ${responseBody}`);
+      error.statusCode = statusCode;
       throw error;
     }
 
-    if (error.code === "ENOTFOUND" || error.message.includes("timed out") || shouldRetryStatus(error.statusCode)) {
-      await sleep(getRetryDelayMs(attempt, error.retryAfter));
-      return notionRequest(method, apiPath, payload, attempt + 1);
-    }
-
-    throw error;
-  });
+    return JSON.parse(responseBody);
+  } catch (curlError) {
+    curlError.cause = originalError;
+    throw curlError;
+  }
 }
 
 function ensureDir(filePath) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
+}
+
+function logProgress(message) {
+  console.error(`[dry-run] ${message}`);
 }
 
 function getCustomFieldMap(task) {
@@ -253,6 +383,10 @@ function getFieldValue(task, fieldName) {
   if (fieldName.startsWith("subtask.")) {
     const key = fieldName.replace(/^subtask\./, "");
     return getNestedValue(task, key);
+  }
+
+  if (fieldName.includes(".")) {
+    return getNestedValue(task, fieldName);
   }
 
   const customField = getCustomFieldMap(task)[fieldName];
@@ -311,6 +445,14 @@ function normalizeOptionMap(config, fieldName, rawValue) {
   const normalization = config.normalization[fieldName];
   if (!normalization) {
     return rawValue;
+  }
+
+  if (
+    rawValue == null ||
+    rawValue === "" ||
+    (Array.isArray(rawValue) && rawValue.length === 0)
+  ) {
+    return normalization.defaultWhenEmpty ?? rawValue;
   }
 
   if (typeof rawValue === "string" && normalization.specialCases && rawValue in normalization.specialCases) {
@@ -605,25 +747,46 @@ function getPartnerBaseName(name) {
   return base;
 }
 
-async function queryAllNotionPages(dataSourceId) {
+async function queryAllNotionPages(dataSourceId, maxPages = null) {
   const results = [];
   let cursor;
+  let pageCount = 0;
+  const queryPath = buildDataSourceQueryPath(dataSourceId, [
+    "partner name",
+    "country",
+    "partner type",
+    "partnership status",
+    "Integration Status",
+    "3rd party contact",
+    "BD / AM rep",
+    "Integration Doc",
+    "Onboard doc",
+    "Integrated Scenarios doc",
+    "Canny",
+    "Note",
+    "terms/ note",
+    "groupId",
+  ]);
 
   do {
-    const response = await notionRequest("POST", `/data_sources/${dataSourceId}/query`, cursor ? { start_cursor: cursor } : {});
+    pageCount += 1;
+    logProgress(`Fetching legacy Notion query page ${pageCount}${maxPages ? `/${maxPages}` : ""}`);
+    const response = await notionRequest("POST", queryPath, cursor ? { start_cursor: cursor } : {});
     results.push(...(response.results || []));
     cursor = response.has_more ? response.next_cursor : null;
-  } while (cursor);
+  } while (cursor && (!maxPages || pageCount < maxPages));
 
   return results;
 }
 
-async function fetchLegacyRecords(dataSourceId) {
+async function fetchLegacyRecords(dataSourceId, maxPages = null) {
   if (!dataSourceId || !process.env.NOTION_TOKEN) {
     return [];
   }
 
-  const pages = await queryAllNotionPages(dataSourceId);
+  logProgress(`Fetching legacy Notion records from ${dataSourceId}`);
+  const pages = await queryAllNotionPages(dataSourceId, maxPages);
+  logProgress(`Fetched ${pages.length} legacy Notion pages`);
   return pages.map((page) => ({
     id: page.id,
     url: page.url,
@@ -836,6 +999,8 @@ function buildPromotedCaseFromSubtask(parentTask, subtask, fieldMappings, normal
     parentTaskGid: parentTask.gid,
     parentTaskName: parentTask.name,
     parentPermalinkUrl: parentTask.permalink_url,
+    parentSectionNames: getSectionNames(parentTask),
+    sectionNames: getSectionNames(subtask),
     parentNotes: parentTask.notes || "",
     gid: subtask.gid,
     name: subtask.name,
@@ -846,6 +1011,7 @@ function buildPromotedCaseFromSubtask(parentTask, subtask, fieldMappings, normal
 }
 
 async function fetchProjectTasks(projectGid, limit) {
+  logProgress(`Fetching up to ${limit} Asana project tasks from ${projectGid}`);
   const optFields = [
     "gid",
     "name",
@@ -866,10 +1032,13 @@ async function fetchProjectTasks(projectGid, limit) {
     `/tasks?project=${encodeURIComponent(projectGid)}&limit=${limit}&opt_fields=${encodeURIComponent(optFields)}`
   );
 
-  return response.data || [];
+  const tasks = response.data || [];
+  logProgress(`Fetched ${tasks.length} Asana tasks`);
+  return tasks;
 }
 
 async function fetchSubtasks(taskGid) {
+  logProgress(`Fetching subtasks for Asana task ${taskGid}`);
   const optFields = [
     "gid",
     "name",
@@ -882,13 +1051,17 @@ async function fetchSubtasks(taskGid) {
   ].join(",");
 
   const response = await asanaRequest(`/tasks/${taskGid}/subtasks?opt_fields=${encodeURIComponent(optFields)}`);
-  return response.data || [];
+  const subtasks = response.data || [];
+  logProgress(`Fetched ${subtasks.length} subtasks for Asana task ${taskGid}`);
+  return subtasks;
 }
 
 async function generatePreview(options = {}) {
   const args = {
     limit: options.limit || 10,
     includeSubtasks: options.includeSubtasks !== false,
+    legacyPageLimit: options.legacyPageLimit ?? null,
+    skipLegacy: options.skipLegacy === true,
   };
 
   loadDotEnv();
@@ -902,15 +1075,16 @@ async function generatePreview(options = {}) {
     throw new Error("ASANA_PROJECT_GID is required");
   }
 
+  logProgress("Starting preview generation");
   const tasks = await fetchProjectTasks(projectGid, args.limit);
-  const legacyRecords = await fetchLegacyRecords(legacyDataSourceId);
+  const legacyRecords = args.skipLegacy ? [] : await fetchLegacyRecords(legacyDataSourceId, args.legacyPageLimit);
   const legacyIndex = buildLegacyIndex(legacyRecords);
   const preview = {
     generatedAt: new Date().toISOString(),
     mode: "dry-run",
     sources: {
       asanaProjectGid: projectGid,
-      legacyNotionDataSourceId: legacyDataSourceId || null,
+      legacyNotionDataSourceId: args.skipLegacy ? null : legacyDataSourceId || null,
       notionPartnersDataSourceId: schemaConfig.sources.notionPartnersDataSourceId,
       notionIntegrationProjectsDataSourceId: schemaConfig.sources.notionIntegrationProjectsDataSourceId,
       notionTasksDataSourceId: schemaConfig.sources.notionTasksDataSourceId,
@@ -926,6 +1100,7 @@ async function generatePreview(options = {}) {
   };
 
   for (const task of tasks) {
+    logProgress(`Processing task ${task.gid} (${task.name})`);
     const subtasks = args.includeSubtasks ? await fetchSubtasks(task.gid) : [];
     const thirdPartyBucket = isThirdPartyPartnerBucket(task);
     const hasSubtasks = subtasks.length > 0;
@@ -943,6 +1118,7 @@ async function generatePreview(options = {}) {
         gid: task.gid,
         name: task.name,
         permalinkUrl: task.permalink_url,
+        sectionNames: getSectionNames(task),
         notes: task.notes || "",
         ...(integrationProject.source || {}),
       };
@@ -965,6 +1141,7 @@ async function generatePreview(options = {}) {
         gid: subtask.gid,
         name: subtask.name,
         permalinkUrl: subtask.permalink_url,
+        sectionNames: getSectionNames(subtask),
       };
       preview.subtasks.push(subtaskPreview);
     }
@@ -972,6 +1149,9 @@ async function generatePreview(options = {}) {
 
   preview.counts.integrationProjectsPreview = preview.integrationProjects.length;
   preview.counts.taskPreview = preview.subtasks.length;
+  logProgress(
+    `Finished preview generation with ${preview.counts.integrationProjectsPreview} integration cases and ${preview.counts.taskPreview} tasks`
+  );
 
   return preview;
 }

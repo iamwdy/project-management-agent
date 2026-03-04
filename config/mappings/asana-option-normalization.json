@@ -70,6 +70,7 @@
     "Delivery Status": {
       "asanaField": "memberships.section.name",
       "fallback": "Legacy / other",
+      "defaultWhenEmpty": "In Discussion",
       "specialCases": {
         "3rd Party Partners": {
           "mappedValue": null,
