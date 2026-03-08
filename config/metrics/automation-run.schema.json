@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "automation-run.schema.json",
+  "title": "Automation Run Metric Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_type",
+    "event_id",
+    "platform",
+    "flow_name",
+    "run_id",
+    "status",
+    "started_at",
+    "ended_at",
+    "duration_ms",
+    "processed_count",
+    "success_count",
+    "error_count",
+    "retry_count",
+    "manual_followup",
+    "emitted_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "automation_run"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Global unique event id for dedupe. Recommended: <platform>:<run_id>:<attempt>"
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["github_workflow", "retool"]
+    },
+    "flow_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "flow_version": {
+      "type": ["string", "null"],
+      "default": null
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": ["success", "failed", "partial", "cancelled", "timed_out"]
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "processed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "success_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "error_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "retry_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "manual_followup": {
+      "type": "boolean"
+    },
+    "error_type": {
+      "type": ["string", "null"],
+      "default": null
+    },
+    "error_summary": {
+      "type": ["string", "null"],
+      "maxLength": 1000,
+      "default": null,
+      "description": "Redacted, no secrets/PII"
+    },
+    "items_per_min": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "default": null
+    },
+    "sla_target_minutes": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "default": null
+    },
+    "sla_hit": {
+      "type": ["boolean", "null"],
+      "default": null
+    },
+    "time_saved_minutes": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "default": null
+    },
+    "repo": {
+      "type": ["string", "null"],
+      "default": null
+    },
+    "environment": {
+      "type": ["string", "null"],
+      "enum": ["dev", "staging", "prod", null],
+      "default": null
+    },
+    "source_url": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "default": null,
+      "description": "Public run URL (GitHub run link or Retool run link)"
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {}
+    },
+    "emitted_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

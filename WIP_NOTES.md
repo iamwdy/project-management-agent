@@ -420,6 +420,69 @@
 - Future communication ingestion should prefer official APIs where available (for example Slack or business accounts) and use semi-manual capture for personal messaging channels.
 
 ## Resume Notes
+- Notion MCP auth incident (2026-03-05):
+  - Symptom:
+    - Notion MCP tool calls fail with `Auth required`
+    - logs show `failed to refresh OAuth tokens for server notion`
+  - Verified behavior:
+    - `codex mcp login notion` may display success, but credentials are not persisted
+    - `codex mcp logout notion` reports `No OAuth credentials stored for 'notion'`
+    - `codex mcp list` shows notion with `Auth: Unsupported` despite OAuth requirement
+  - Impact:
+    - Notion MCP exploration/setup path is blocked in current session
+    - fallback is direct Notion API scripts in this repo
+  - Suggested recovery order:
+    - upgrade Codex CLI to latest stable
+    - open a fresh terminal/session
+    - re-register and re-login Notion MCP:
+      - `codex mcp remove notion`
+      - `codex mcp add notion --url https://mcp.notion.com/mcp`
+      - `codex mcp login notion`
+    - re-test with a minimal call (for example `notion-get-users`)
+  - Recovery execution update (2026-03-05, later):
+    - completed:
+      - upgraded Codex CLI from `0.107.0-alpha.5` to `0.110.0` via Homebrew cask
+      - re-registered Notion MCP:
+        - `codex mcp remove notion`
+        - `codex mcp add notion --url https://mcp.notion.com/mcp`
+      - completed OAuth login flow successfully
+      - `codex mcp list` now reports:
+        - `notion ... Auth: OAuth`
+        - `asana ... Auth: OAuth`
+    - important caveat:
+      - the currently running chat/agent runtime still returned `Auth required` on `notion-get-users`
+      - likely due to stale MCP auth cache in this active session
+      - action: restart the Codex session and re-test Notion MCP tool call first
+    - local backup made during upgrade:
+      - old VS Code extension-linked binary moved to:
+        - `/opt/homebrew/bin/codex.vscode.bak`
+
+- One-off Notion clone script added (2026-03-05):
+  - New script:
+    - `scripts/clone-notion-card-components.cjs`
+  - Purpose:
+    - clone specific block components from one Notion card to multiple target cards
+    - supports one-off migration where a card section is composed as:
+      - heading (`Task` / `Tasks`)
+      - followed by database block (for example `project checklist`)
+  - Key modes:
+    - generic mode:
+      - `--include-types` (default: `button,child_database,link_to_page,synced_block`)
+    - section mode (preferred for Task heading + checklist database):
+      - `--section-heading-keywords "task,tasks"`
+      - `--section-follow-types "child_database,link_to_page,synced_block"`
+      - `--section-follow-title-keywords "project checklist"`
+  - Safety:
+    - supports `--dry-run`
+    - writes summary to `tmp/clone-card-components-result.json`
+    - unsupported/non-creatable blocks are skipped and reported in result JSON
+  - Notes:
+    - current behavior appends cloned blocks to targets (does not replace existing content)
+    - script uses repo-standard Notion transport handling:
+      - Node TLS 1.2 first
+      - curl fallback
+    - can run without MCP (direct Notion API token path via local `.env` / `NOTION_TOKEN`)
+
 - Repository scope clarification:
   - This repo is currently serving the integration migration workflow only.
   - Even though the broader domain is booking / reservation operations, the actual code and data work here is scoped to integration records, schema normalization, and integration project content migration.
@@ -539,3 +602,113 @@
 - Suggested first step for the next session:
   - promote the three case-like subtasks above into `Partner Integration Hub`
   - then decide whether their current parent cards should remain standalone cases or become partner masters with multiple cases underneath
+
+## Session Updates (2026-03-05, PM)
+
+- Template scaffold rollout to existing `Integration Projects` pages:
+  - source template used: `Template` page `31ac90dfe385808abf7dee7f37aaddb1`
+  - target rule:
+    - only pages missing scaffold
+    - scaffold definition: `Tasks` heading and/or `button` and/or `child_database`
+  - execution summary:
+    - scanned existing pages (excluding template): `101`
+    - target pages identified: `97`
+    - MCP `apply_template` completed for target set
+    - post-apply cleanup ran to remove appended `About this Project` / `Current Progress` blocks where needed
+  - cleanup result file:
+    - `tmp/template-cleanup-result.json`
+  - known cleanup errors in script run were transient/block-state related, but spot re-check confirmed the affected pages still ended with:
+    - `hasAbout: false`
+    - `hasTasks: true`
+    - `hasButton: true`
+    - `hasDb: true`
+
+- Cross-platform metrics design added to repo (GitHub + Retool):
+  - unified schema:
+    - `config/metrics/automation-run.schema.json`
+  - ingestion mapping:
+    - `config/metrics/ingestion-mapping.github-workflow.json`
+    - `config/metrics/ingestion-mapping.retool.json`
+  - usage notes:
+    - `README_METRICS.md`
+
+- Security policy hardening added to `AGENTS.md`:
+  - added strict secret handling guardrails
+  - added explicit `Retool Export Rule` (treat raw export as sensitive; sanitized-first)
+
+- Notion `Automation Metrics` database creation/fix:
+  - target parent page:
+    - `Workflow Automations` (`24fc90dfe38580cf9bb2fc95863128d3`)
+  - created database:
+    - database id: `6d9051c2-ed09-4bc8-b8a7-236ef463a319`
+    - url: `https://www.notion.so/6d9051c2ed094bc8b8a7236ef463a319`
+  - initial issue:
+    - created data source had only default `Name` property (looked empty in Notion)
+  - fix applied:
+    - patched data source id `74f5e6dd-118c-4d39-aff4-24d870bbdf7d`
+    - renamed `Name` -> `Workflow Name`
+    - added full metrics fields (current property count: `19`)
+  - note:
+    - Notion MCP in-session auth remained unstable (`Auth required`), so database operations used direct Notion API via local `NOTION_TOKEN` fallback.
+
+- Suggested first step for next session:
+  - connect GitHub workflow and Retool workflow end-steps to a shared metrics webhook
+  - map webhook payload to `Automation Metrics` properties (including idempotent write by `Run ID`)
+
+## Automation Metrics WIP (2026-03-06)
+- Scope confirmed:
+  - Use Google Sheets as source of truth for workflow impact metrics.
+  - Upstream emitters: GitHub Actions workflows (`release-note`, `on-call`, `send-highlighted-review`) and Retool/Pipedream ingress path.
+- Final raw schema currently in use (`automation_metrics_raw`):
+  - `date, workflow_name, workflow_variant, run_id, platform, status, start_timestamp, end_timestamp, processing_time_seconds, items_processed, items_generated, manual_time_per_item_minutes, time_saved_minutes, error_type, ai_generation_time_seconds, attempt, flow_version, source_url, dry_run, created_count, slack_messages_prepared, slack_messages_sent, asana_writeback_count, highlighted_rows_found, rows_sent_or_previewed, version_mismatch_count, unassigned_count, status_bucket_counts, target_channel, command, manual_followup_required, emitted_at`
+- GitHub workflow changes completed and pushed:
+  - Added `Emit metrics` step with `if: always()` to ensure emission on success/failure.
+  - Added `Authorization: Bearer $METRICS_SHARED_SECRET` header support.
+  - Added webhook response logging (`[metrics] webhook status: <code>`).
+  - Added dry-run mock-value fallback for validation when real counters are empty.
+  - Added `dry_run` input to `release-note` workflow.
+- Root cause fixed during debugging:
+  - Payload object was built in `jq -n` with shorthand fields (`{date, ...}`), causing null values.
+  - Fixed by explicit mapping (`date: $date`, etc.) in all workflows.
+- Runtime verification:
+  - Multiple dry runs completed successfully with webhook status `200` for both `on-call` and `release-note` workflows.
+  - End-to-end delivery to Pipedream confirmed.
+- Google Sheets setup completed:
+  - Created/updated tabs: `automation_metrics_raw`, `metrics_model`, `dashboard`.
+  - `metrics_model` now includes normalization/derived fields to differentiate from raw data:
+    - `status_norm`, `dry_run_bool`, `run_day`, `processing_time_minutes`, `event_key`, `is_success`, `is_failed`.
+  - Dashboard KPI formulas updated to use normalized columns and exclude `dry_run` rows by boolean field.
+  - `run_day` display fixed from serial number (e.g. `46087`) to date format (`yyyy-mm-dd`).
+  - Cleared stale overlapping formula in `dashboard!D1` that caused `#VALUE!`.
+- Current dashboard status:
+  - KPI cells are populating and no longer all zero after normalization fix.
+  - Daily query table starts at `dashboard!D2`.
+- Next recommended steps:
+  - Add charts in `dashboard` from `D:H` daily summary table.
+  - Optionally remove dry-run mock fallback once production traffic is stable.
+  - Optionally add dedupe guard in ingestion using `event_key`.
+
+## WIP Update (2026-03-08)
+- Metrics rollout decision:
+  - Keep the existing Retool `sendMetrics` block path first so data collection can start immediately.
+  - Prioritize stable ingestion to Pipedream and Google Sheets raw tab; do not block on full workflow refactor.
+  - Known temporary limitation: Notion query may return first page only (100 rows) when pagination is not fully implemented; related counts may be under-reported.
+- Planned refactor (deferred):
+  - Target architecture is to centralize automations into the `workflow` repo and move Retool workflows gradually to GitHub Actions.
+  - Desired scope includes `release-note`, `on-call`, and weekly task update workflows plus unified metrics.
+  - Standardization goal remains one shared metrics schema and one emit path (webhook) across workflows.
+- Optimization backlog:
+  - Finish Notion pagination for accurate `items_processed` / `created_count` (avoid first-page-only counts).
+  - Reduce metric source ambiguity by separating query-layer metrics, message-layer metrics, and emission-layer normalization.
+  - Keep non-applicable fields explicit (default `0` or empty) and avoid misleading null/implicit fallbacks.
+- Next resume checklist:
+  - Verify current Retool metrics payload fields are landing correctly in Google Sheets.
+  - Confirm authoritative source fields per workflow before dashboard aggregation.
+  - Start migration with one pilot workflow, then move `release-note` and `on-call`.
+- Metrics schema direction update:
+  - Do not fully split Retool and GitHub into two isolated schemas.
+  - Adopt one shared core schema for cross-platform analysis, plus platform-specific extension fields.
+  - Core-first approach is preferred for dashboard consistency; platform-only fields remain optional and additive.
+- Execution strategy update:
+  - Keep existing Retool `sendMetrics` block live now to continue data collection.
+  - Defer full workflow-repo refactor and migration sequencing to a later phase.

@@ -1,0 +1,132 @@
+{
+  "platform": "github_workflow",
+  "schema_version": "1.0.0",
+  "notes": [
+    "Emit one metric event per workflow run.",
+    "Emit from a final step (always run) using workflow context + your own counters.",
+    "Do not include secrets from github context or logs."
+  ],
+  "field_mapping": {
+    "schema_version": {
+      "source": "constant",
+      "value": "1.0.0"
+    },
+    "event_type": {
+      "source": "constant",
+      "value": "automation_run"
+    },
+    "event_id": {
+      "source": "expression",
+      "value": "github_workflow:${{ github.run_id }}:${{ github.run_attempt }}"
+    },
+    "platform": {
+      "source": "constant",
+      "value": "github_workflow"
+    },
+    "flow_name": {
+      "source": "github.workflow"
+    },
+    "flow_version": {
+      "source": "github.sha",
+      "fallback": null
+    },
+    "run_id": {
+      "source": "github.run_id"
+    },
+    "attempt": {
+      "source": "github.run_attempt",
+      "cast": "integer"
+    },
+    "status": {
+      "source": "github.job_status",
+      "transform": {
+        "success": "success",
+        "failure": "failed",
+        "cancelled": "cancelled"
+      },
+      "default": "failed"
+    },
+    "started_at": {
+      "source": "workflow_runtime.start_time_iso8601"
+    },
+    "ended_at": {
+      "source": "workflow_runtime.end_time_iso8601"
+    },
+    "duration_ms": {
+      "source": "workflow_runtime.duration_ms"
+    },
+    "processed_count": {
+      "source": "job_output.processed_count",
+      "fallback": 0
+    },
+    "success_count": {
+      "source": "job_output.success_count",
+      "fallback": 0
+    },
+    "error_count": {
+      "source": "job_output.error_count",
+      "fallback": 0
+    },
+    "retry_count": {
+      "source": "job_output.retry_count",
+      "fallback": 0
+    },
+    "manual_followup": {
+      "source": "job_output.manual_followup",
+      "fallback": false
+    },
+    "error_type": {
+      "source": "job_output.error_type",
+      "fallback": null
+    },
+    "error_summary": {
+      "source": "job_output.error_summary_redacted",
+      "fallback": null
+    },
+    "items_per_min": {
+      "source": "derived",
+      "expression": "processed_count / max(duration_ms/60000, 1e-9)",
+      "round": 2
+    },
+    "sla_target_minutes": {
+      "source": "job_output.sla_target_minutes",
+      "fallback": null
+    },
+    "sla_hit": {
+      "source": "derived",
+      "expression": "duration_ms <= sla_target_minutes*60000",
+      "nullable_if": "sla_target_minutes == null"
+    },
+    "time_saved_minutes": {
+      "source": "job_output.time_saved_minutes",
+      "fallback": null
+    },
+    "repo": {
+      "source": "github.repository"
+    },
+    "environment": {
+      "source": "github.ref_name",
+      "transform": {
+        "main": "prod",
+        "master": "prod",
+        "staging": "staging",
+        "develop": "dev"
+      },
+      "default": "dev"
+    },
+    "source_url": {
+      "source": "expression",
+      "value": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+    },
+    "labels": {
+      "source": "object",
+      "value": {
+        "workflow_file": "${{ github.workflow_ref }}",
+        "actor": "${{ github.actor }}"
+      }
+    },
+    "emitted_at": {
+      "source": "now_iso8601"
+    }
+  }
+}

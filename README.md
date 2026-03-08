@@ -11,6 +11,31 @@ More specifically, the active work in this repo is:
 This repository is not currently acting as a general booking PM assistant or a full reservation-operations workspace.
 If booking-domain workflows are needed later, they should be documented as a separate scope instead of being mixed into the current integration migration logic.
 
+## Automation Metrics
+This repo also contains the shared metrics contract used by mixed automation platforms (GitHub Actions + Retool/Pipedream + Google Sheets dashboard).
+
+Contract files:
+- `config/metrics/automation-run.schema.json`
+- `config/metrics/ingestion-mapping.github-workflow.json`
+- `config/metrics/ingestion-mapping.retool.json`
+
+Current pipeline:
+1. workflow run finishes (`if: always()` on GitHub side)
+2. metrics payload is emitted to webhook with bearer auth
+3. Pipedream normalizes payload
+4. Google Sheets receives raw row (`automation_metrics_raw`)
+5. `metrics_model` auto-cleans and derives fields
+6. `dashboard` reads from `metrics_model`
+
+Required secrets in workflow repos:
+- `METRICS_WEBHOOK_URL`
+- `METRICS_SHARED_SECRET`
+
+Notes:
+- Keep raw tab append-only.
+- Use model tab for type normalization (`status_norm`, `dry_run_bool`, `run_day`, `processing_time_minutes`, `event_key`, `is_success`, `is_failed`).
+- Build charts from model/dashboard tabs, not directly from raw.
+
 ## New Project Flow
 1. Run `scripts/new-project.sh <project-name-or-path>` from this template repository
 2. Read `AGENTS.md` in the new project
@@ -55,6 +80,8 @@ Current behavior:
 - `NOTION_TARGET_DB_ID`: optional target Notion database for future sync runs.
 - `SYNC_DRY_RUN`: set to `true` while validating mappings so no write happens by accident.
 - `DEFAULT_TIMEZONE`: canonical timezone for due dates and sync timestamps.
+- `METRICS_WEBHOOK_URL`: metrics sink webhook endpoint (use repo secret in workflow repos).
+- `METRICS_SHARED_SECRET`: bearer secret used by webhook auth.
 
 ## Conventions
 - Project-specific agent guidance lives in `AGENTS.md`

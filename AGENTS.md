@@ -98,3 +98,40 @@ When Notion API calls fail with low-level network errors such as `ECONNRESET`, d
 - Never print tokens, Authorization headers, or full secret-bearing commands in output.
 - When probing connectivity, use the smallest endpoint and smallest payload that can answer the current question.
 - If Homebrew or version-manager installation is used for comparison, note any side effects on existing Node binaries before proceeding further.
+
+## Security Guardrails (Strict)
+
+1. Default deny for secrets.
+   - Never read, print, transform, summarize, or persist secret-bearing content.
+   - Forbidden examples: API keys, tokens, passwords, OAuth credentials, session cookies, private keys, auth headers, secret manager values.
+2. Forbidden files and paths by default.
+   - Never read `.env`, `.env.*`, `*.pem`, `*.key`, `id_rsa*`, `credentials*`, `secrets*`.
+   - Never read external export files (Downloads/Desktop) unless the user explicitly approves and the file is sanitized first.
+3. Sanitization-first policy.
+   - For workflow export JSON (Retool or similar), run a secret-pattern scan first.
+   - If sensitive fields may exist, stop and request a sanitized copy before any deeper parsing.
+   - Continue only with redacted values while preserving structure.
+4. No secret echo policy.
+   - Never print env vars, auth headers, cookies, or bearer tokens.
+   - Never output full payload dumps that may contain PII or secrets.
+   - Use placeholders such as `YOUR_API_KEY` and `REDACTED_TOKEN`.
+5. Approval gates (must ask first).
+   - Before enabling outbound network calls to new external endpoints.
+   - Before adding telemetry/log sinks or error-reporting integrations.
+   - Before adding new production dependencies.
+   - Before reading files outside the project workspace.
+6. Data minimization.
+   - Read only required sections, not full files by default.
+   - For large JSON exports, extract only needed metadata and avoid storing raw copies in this repo.
+7. Allowed outputs.
+   - Provide architecture summaries, mappings, schemas, pseudocode, and redacted examples.
+   - Do not reproduce sensitive IDs unless strictly required for implementation.
+8. Incident handling.
+   - If secret leakage is suspected, stop immediately.
+   - Notify the user and recommend key rotation plus replacement with sanitized files.
+
+## Retool Export Rule
+
+- Treat raw Retool workflow export JSON as sensitive by default.
+- Operate only on sanitized files (for example `*-sanitized.json`) approved by the user.
+- If only a raw export is available, provide a redaction checklist first and wait for confirmation.

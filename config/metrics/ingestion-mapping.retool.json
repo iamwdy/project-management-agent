@@ -1,0 +1,137 @@
+{
+  "platform": "retool",
+  "schema_version": "1.0.0",
+  "notes": [
+    "Preferred path: emit metric event directly at workflow end (no Retool API pull needed).",
+    "If historical backfill is needed, use Retool API with a token stored in secure env only.",
+    "Do not emit request payloads, auth headers, or PII."
+  ],
+  "field_mapping": {
+    "schema_version": {
+      "source": "constant",
+      "value": "1.0.0"
+    },
+    "event_type": {
+      "source": "constant",
+      "value": "automation_run"
+    },
+    "event_id": {
+      "source": "expression",
+      "value": "retool:${{ workflow_run_id }}:${{ run_attempt || 1 }}"
+    },
+    "platform": {
+      "source": "constant",
+      "value": "retool"
+    },
+    "flow_name": {
+      "source": "workflow_name"
+    },
+    "flow_version": {
+      "source": "workflow_version",
+      "fallback": null
+    },
+    "run_id": {
+      "source": "workflow_run_id"
+    },
+    "attempt": {
+      "source": "run_attempt",
+      "cast": "integer",
+      "fallback": 1
+    },
+    "status": {
+      "source": "run_status",
+      "transform": {
+        "succeeded": "success",
+        "success": "success",
+        "failed": "failed",
+        "error": "failed",
+        "partial": "partial",
+        "cancelled": "cancelled",
+        "timed_out": "timed_out"
+      },
+      "default": "failed"
+    },
+    "started_at": {
+      "source": "run_started_at_iso8601"
+    },
+    "ended_at": {
+      "source": "run_finished_at_iso8601"
+    },
+    "duration_ms": {
+      "source": "run_duration_ms"
+    },
+    "processed_count": {
+      "source": "step_output.processed_count",
+      "fallback": 0
+    },
+    "success_count": {
+      "source": "step_output.success_count",
+      "fallback": 0
+    },
+    "error_count": {
+      "source": "step_output.error_count",
+      "fallback": 0
+    },
+    "retry_count": {
+      "source": "step_output.retry_count",
+      "fallback": 0
+    },
+    "manual_followup": {
+      "source": "step_output.manual_followup",
+      "fallback": false
+    },
+    "error_type": {
+      "source": "step_output.error_type",
+      "fallback": null
+    },
+    "error_summary": {
+      "source": "step_output.error_summary_redacted",
+      "fallback": null
+    },
+    "items_per_min": {
+      "source": "derived",
+      "expression": "processed_count / max(duration_ms/60000, 1e-9)",
+      "round": 2
+    },
+    "sla_target_minutes": {
+      "source": "step_output.sla_target_minutes",
+      "fallback": null
+    },
+    "sla_hit": {
+      "source": "derived",
+      "expression": "duration_ms <= sla_target_minutes*60000",
+      "nullable_if": "sla_target_minutes == null"
+    },
+    "time_saved_minutes": {
+      "source": "step_output.time_saved_minutes",
+      "fallback": null
+    },
+    "repo": {
+      "source": "constant",
+      "value": null
+    },
+    "environment": {
+      "source": "workflow_environment",
+      "transform": {
+        "production": "prod",
+        "staging": "staging",
+        "development": "dev"
+      },
+      "default": "dev"
+    },
+    "source_url": {
+      "source": "run_url",
+      "fallback": null
+    },
+    "labels": {
+      "source": "object",
+      "value": {
+        "workspace": "{{ workspace_name || '' }}",
+        "workflow_id": "{{ workflow_id || '' }}"
+      }
+    },
+    "emitted_at": {
+      "source": "now_iso8601"
+    }
+  }
+}
